@@ -1,6 +1,6 @@
 #ifndef RAYH
 #define RAYH
-#include "geometry.h"
+#include "vec3.h"
 class ray
 {
 public:
