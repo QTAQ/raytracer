@@ -6,16 +6,28 @@ using namespace std;
 const int width = 200;
 const int height = 100;
 const int ns = 100;
+vec3 random_in_unit_sphere()
+{
+	vec3 p;
+	vec3 u(1.f, 1.f, 1.f);
+	do
+	{
+		p = 2 * vec3(rand() % 100 / 100.0f, rand() % 100 / 100.0f, rand() % 100 / 100.0f) - u;
+	} while (p.squared_length() >= 1.f);
+	return p;
+}
 vec3 color(ray &r, hitable *world)
 {
 	hit_record rec;
-	if (world->hit(r,0.0,FLT_MAX,rec))
+	if (world->hit(r,0.00001f,FLT_MAX,rec))
 	{
-		return 0.5*vec3(rec.n[0] + 1.0f, rec.n[1] + 1.0f, rec.n[2] + 1.0f);
+		vec3 target = rec.p + rec.n + random_in_unit_sphere();
+		ray newray(rec.p, target - rec.p);
+		return 0.5*color(newray, world);
 	}
 	vec3 unit = make_unit(r.direction());
 	float t = 0.5f*(unit.y() + 1.0f);
-	return (1.f - t)*vec3(1.f, 1.f, 1.f) + t * vec3(0.5f, 0.7f, 1.f);
+	return (1.f - t)*vec3(1.f, 1.f, 1.f) + t * vec3(0.5f, 0.7f, 0.1f);
 }
 void render()
 {
@@ -39,9 +51,9 @@ void render()
 				clr += color(r, world);
 			}
 			clr /= ns;
-			int ir = (int)(255.99f*clr[0]);
-			int ig = (int)(255.99f*clr[1]);
-			int ib = (int)(255.99f*clr[2]);
+			int ir = (int)(255.99f*(sqrt(clr[0])));
+			int ig = (int)(255.99f*(sqrt(clr[1])));
+			int ib = (int)(255.99f*(sqrt(clr[2])));
 			of << ir << " " << ig << " " << ib << endl;
 		}
 	}
