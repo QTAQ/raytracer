@@ -1,29 +1,25 @@
 #include "hitable_list.h"
 #include "sphere.h"
 #include "camera.h"
+#include "material.h"
 #include<fstream>
 using namespace std;
 const int width = 200;
 const int height = 100;
 const int ns = 100;
-vec3 random_in_unit_sphere()
-{
-	vec3 p;
-	vec3 u(1.f, 1.f, 1.f);
-	do
-	{
-		p = 2 * vec3(rand() % 100 / 100.0f, rand() % 100 / 100.0f, rand() % 100 / 100.0f) - u;
-	} while (p.squared_length() >= 1.f);
-	return p;
-}
-vec3 color(ray &r, hitable *world)
+
+vec3 color(ray &r, hitable *world,int depth)
 {
 	hit_record rec;
 	if (world->hit(r,0.00001f,FLT_MAX,rec))
 	{
-		vec3 target = rec.p + rec.n + random_in_unit_sphere();
-		ray newray(rec.p, target - rec.p);
-		return 0.5*color(newray, world);
+		ray scattered;
+		vec3 attenuation;
+		if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+		{
+			return attenuation * color(scattered, world, depth + 1);
+		}
+		else return vec3(0, 0, 0);
 	}
 	vec3 unit = make_unit(r.direction());
 	float t = 0.5f*(unit.y() + 1.0f);
@@ -34,8 +30,8 @@ void render()
 	ofstream of(".\\out.ppm");
 	of << "P3" << endl << width << " " << height << endl << 255 << endl;
 	hitable *list[2];
-	list[0] = new sphere(vec3(0, 0, -1), 0.5f);
-	list[1] = new sphere(vec3(0, -100.5f, -1), 100.0f);
+	list[0] = new sphere(vec3(0, 0, -1), 0.5f,new lambertian(vec3(0.8,0.3,0.8)));
+	list[1] = new sphere(vec3(0, -100.5f, -1), 100.0f, new lambertian(vec3(0.3, 0.5, 0.8)));
 	hitable *world = new hitable_list(list, 2);
 	camera cam;
 	for (int y = height-1; y >= 0; --y)
@@ -48,7 +44,7 @@ void render()
 				float u = ((float)x+ rand() % 100 / 100.0f)/ (float)width; 
 				float v = ((float)y+ rand() % 100 / 100.0f)/ (float)height;
 				ray r = cam.get_ray(u,v);
-				clr += color(r, world);
+				clr += color(r, world,0);
 			}
 			clr /= ns;
 			int ir = (int)(255.99f*(sqrt(clr[0])));
